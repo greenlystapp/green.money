@@ -1,0 +1,26 @@
+{
+  "name": "greenlystapp/green.money",
+  "description": "A fully featured PHP SDK for calling methods from the Green Payment Processing API and parsing the responses",
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "support": {
+    "issues": "https://github.com/greenlystapp/green.money/issues",
+    "source": "https://github.com/greenlystapp/green.money"
+  },
+  "authors": [
+    {
+      "name": "Abishek R Srikaanth",
+      "email": "abishek@greenlyst.app"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Greenlyst\\GreenMoney\\": "src"
+    }
+  },
+  "require": {
+    "ext-curl": "*",
+    "php": "^7.1.3",
+    "ext-soap": "*"
+  }
+}
