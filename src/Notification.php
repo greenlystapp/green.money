@@ -1,8 +1,8 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Greenlyst\GreenMoney;
-
 
 class Notification
 {
@@ -70,11 +70,11 @@ class Notification
     {
     }
 
-    public function searchCheck_ID()
+    public function searchCheckId()
     {
     }
 
-    public function searchParentCheck_ID()
+    public function searchParentCheckId()
     {
     }
 

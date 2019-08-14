@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Greenlyst\GreenMoney\Models;
 
-class CustomerInfo
+class Payee
 {
     /**
      * @var string
@@ -47,6 +49,7 @@ class CustomerInfo
 
     /**
      * CustomerInfo constructor.
+     *
      * @param string $name
      * @param string $emailAddress
      * @param string $phone
@@ -72,83 +75,19 @@ class CustomerInfo
         $this->country = $country;
     }
 
-    /**
-     * @return string
-     */
-    public function getName()
+    public function toArray()
     {
-        return $this->name;
-    }
-
-    /**
-     * @return string
-     */
-    public function getEmailAddress()
-    {
-        return $this->emailAddress;
-    }
-
-    /**
-     * @return string
-     */
-    public function getPhone()
-    {
-        return $this->phone;
-    }
-
-    /**
-     * @return string
-     */
-    public function getPhoneExtension()
-    {
-        return $this->phoneExtension;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAddress1()
-    {
-        return $this->address1;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAddress2()
-    {
-        return $this->address2;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCity()
-    {
-        return $this->city;
-    }
-
-    /**
-     * @return string
-     */
-    public function getState()
-    {
-        return $this->state;
-    }
-
-    /**
-     * @return string
-     */
-    public function getZip()
-    {
-        return $this->zip;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCountry()
-    {
-        return $this->country;
+        return [
+            'Name' => $this->name,
+            'EmailAddress' => $this->emailAddress,
+            'Address1' => $this->address1,
+            'Address2' => $this->address2,
+            'Phone' => $this->phone,
+            'PhoneExtension' => $this->phoneExtension,
+            'City' => $this->city,
+            'State' => $this->state,
+            'Zip' => $this->zip,
+            'Country' => $this->country,
+        ];
     }
 }

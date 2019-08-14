@@ -1,17 +1,18 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Greenlyst\GreenMoney\Models;
 
-
-class BankInfo
+class PayeeBankInfo
 {
     private $routingNumber;
     private $accountNumber;
     private $bankName;
 
     /**
-     * BankInfo constructor.
+     * PayeeBankInfo constructor.
+     *
      * @param string $routingNumber
      * @param string $accountNumber
      * @param string $bankName
@@ -23,27 +24,12 @@ class BankInfo
         $this->bankName = $bankName;
     }
 
-    /**
-     * @return string
-     */
-    public function getRoutingNumber()
+    public function toArray()
     {
-        return $this->routingNumber;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAccountNumber()
-    {
-        return $this->accountNumber;
-    }
-
-    /**
-     * @return string
-     */
-    public function getBankName()
-    {
-        return $this->bankName;
+        return [
+            'RoutingNumber' => $this->routingNumber,
+            'AccountNumber' => $this->accountNumber,
+            'BankName' => $this->bankName,
+        ];
     }
 }

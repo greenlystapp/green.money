@@ -1,10 +1,10 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Greenlyst\GreenMoney\Models;
 
-
-class RecurringObject
+class RecurringInfo
 {
     private $recurringType;
     private $recurringOffset;
@@ -15,7 +15,8 @@ class RecurringObject
     public const RECURRING_TYPE_DAILY = 'D';
 
     /**
-     * RecurringObject constructor.
+     * RecurringInfo constructor.
+     *
      * @param string $recurringType
      * @param string $recurringOffset
      * @param string $recurringPayments
@@ -28,26 +29,14 @@ class RecurringObject
     }
 
     /**
-     * @return string
+     * @return array
      */
-    public function getRecurringType()
+    public function toArray()
     {
-        return $this->recurringType;
-    }
-
-    /**
-     * @return string
-     */
-    public function getRecurringOffset()
-    {
-        return $this->recurringOffset;
-    }
-
-    /**
-     * @return string
-     */
-    public function getRecurringPayments()
-    {
-        return $this->recurringPayments;
+        return [
+            'RecurringType' => $this->recurringType,
+            'RecurringOffset' => $this->recurringOffset,
+            'RecurringPayments' => $this->recurringPayments,
+        ];
     }
 }

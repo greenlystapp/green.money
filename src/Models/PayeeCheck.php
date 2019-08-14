@@ -1,10 +1,10 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Greenlyst\GreenMoney\Models;
 
-
-class CheckInfo
+class PayeeCheck
 {
 
     /**
@@ -25,7 +25,8 @@ class CheckInfo
     private $checkNumber;
 
     /**
-     * CheckInfo constructor.
+     * PayeeCheck constructor.
+     *
      * @param string $checkMemo
      * @param string $checkAmount
      * @param string $checkDate
@@ -40,34 +41,15 @@ class CheckInfo
     }
 
     /**
-     * @return string
+     * @return array
      */
-    public function getCheckMemo()
+    public function toArray()
     {
-        return $this->checkMemo;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCheckAmount()
-    {
-        return $this->checkAmount;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCheckDate()
-    {
-        return $this->checkDate;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCheckNumber()
-    {
-        return $this->checkNumber;
+        return [
+            'CheckMemo' => $this->checkMemo,
+            'CheckAmount' => $this->checkAmount,
+            'CheckDate' => $this->checkDate,
+            'CheckNumber' => $this->checkNumber,
+        ];
     }
 }

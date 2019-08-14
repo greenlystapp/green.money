@@ -1,14 +1,15 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Greenlyst\GreenMoney\Util;
 
-
 use Exception;
-use SoapClient;
-use SoapFault;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use Psr\Http\Message\ResponseInterface;
 
-class Request
+final class Request
 {
     /**
      * @var string
@@ -22,33 +23,16 @@ class Request
      * @var bool
      */
     private $live;
-    /**
-     * @var string
-     */
-    private $endpoint;
-    /**
-     * @var string
-     */
-    private $lastError;
 
-
-    public const TYPE_CHECK = "E-CHECK";
+    public const TYPE_CHECK = "ECHECK";
 
     public const TYPE_NOTIFICATION = "NOTIFICATION";
 
     public const TYPE_REPORT = "REPORT";
-
-    private const API_E_CHECK_PRODUCTION_URL = "https://greenbyphone.com/echeck.asmx";
-
-    private const API_E_CHECK_SANDBOX_URL = "https://cpsandbox.com/echeck.asmx";
-
-    private const API_REPORT_PRODUCTION_URL = "https://greenbyphone.com/report.asmx";
-
-    private const API_REPORT_SANDBOX_URL = "https://cpsandbox.com/report.asmx";
-
-    private const API_NOTIFICATION_PRODUCTION_URL = "https://greenbyphone.com/enotification.asmx";
-
-    private const API_NOTIFICATION_SANDBOX_URL = "https://cpsandbox.com/enotification.asmx";
+    /**
+     * @var string
+     */
+    private $type;
 
     /**
      * Gateway constructor.
@@ -63,63 +47,19 @@ class Request
         $this->clientId = $clientId;
         $this->apiPassword = $apiPassword;
         $this->live = $live;
-        $this->assignEndpointByType($type);
+        $this->type = $type;
     }
 
     /**
+     * Returns the endpoint based on the type and environment
+     *
+     * @param $type
+     *
      * @return string
      */
-    public function getEndpoint(): string
+    private function getEndpoint($type): string
     {
-        return $this->endpoint;
-    }
-
-    /**
-     * @param string $type
-     */
-    private function assignEndpointByType(string $type): void
-    {
-        switch ($type) {
-            case self::TYPE_CHECK:
-                if ($this->live) {
-                    $this->endpoint = self::API_E_CHECK_PRODUCTION_URL;
-                } else {
-                    $this->endpoint = self::API_E_CHECK_SANDBOX_URL;
-                }
-                break;
-
-            case self::TYPE_NOTIFICATION:
-                if ($this->live) {
-                    $this->endpoint = self::API_NOTIFICATION_PRODUCTION_URL;
-                } else {
-                    $this->endpoint = self::API_NOTIFICATION_SANDBOX_URL;
-                }
-                break;
-
-            case self::TYPE_REPORT:
-                if ($this->live) {
-                    $this->endpoint = self::API_REPORT_PRODUCTION_URL;
-                } else {
-                    $this->endpoint = self::API_REPORT_SANDBOX_URL;
-                }
-                break;
-        }
-    }
-
-    /**
-     * @return string
-     */
-    public function getLastError(): string
-    {
-        return $this->lastError;
-    }
-
-    /**
-     * @param string $lastError
-     */
-    public function assignLastError(string $lastError): void
-    {
-        $this->lastError = $lastError;
+        return sprintf('https://%s/%s.asmx', ($this->live ? 'greenbyphone.com' : 'cpsandbox.com'), strtolower($type));
     }
 
     /**
@@ -148,107 +88,78 @@ class Request
      * @param array $resultArray
      *
      * @return array|bool|string
+     *
+     * @throws Exception
      */
-    public function request(string $method, array $options, $resultArray = array())
+    public function request(string $method, array $options, $resultArray = []): array
     {
-        if (!isset($options['Client_ID'])) {
-            $options["Client_ID"] = $this->getClientID();
-        }
-        if (!isset($options['ApiPassword'])) {
-            $options['ApiPassword'] = $this->getApiPassword();
-        }
-        //Test whether they want the delimited return or not to start with
-        $returnDelimiter = ($options['x_delim_data'] === "TRUE");
-        //Now let's actually set delim to TRUE because we always want to get a delimited string back from the API so we can parse it
-        $options["x_delim_data"] = "TRUE";
+        $client = new Client([
+            'base_uri' => $this->getEndpoint($this->type),
+        ]);
+
         try {
-            $curlObj = curl_init();
-            if ($curlObj === FALSE) {
-                throw new Exception('Failed to initialize cURL');
-            }
-            curl_setopt($curlObj, CURLOPT_URL, $this->getEndpoint() . '/' . $method);
-            curl_setopt($curlObj, CURLOPT_POST, 1);
-            curl_setopt($curlObj, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curlObj, CURLOPT_CONNECTTIMEOUT, 3);
-            curl_setopt($curlObj, CURLOPT_POSTFIELDS, http_build_query($options));
-            $response = curl_exec($curlObj);
-            if ($response === FALSE) {
-                throw new Exception(curl_error($curlObj), curl_errno($curlObj));
-            }
-            curl_close($curlObj);
-        } catch (Exception $e) {
-            $this->assignLastError(sprintf('Curl failed with error #%d: %s', $e->getCode(), $e->getMessage()));
-            return false;
+            $response = $client->request('POST', $method, [
+                'body' => array_merge($options, [
+                    'Client_ID' => $this->getClientId(),
+                    'ApiPassword' => $this->getApiPassword(),
+                    'x_delim_data' => 'true',
+                    'x_delim_char' => ',',
+                ]),
+            ]);
+
+            return $this->parseResponse($response, $resultArray);
+
+        } catch (GuzzleException $exception) {
+            throw new Exception(sprintf('Failed with error #%d: %s', $exception->getCode(), $exception->getMessage()));
         }
-        try {
-            if ($returnDelimiter) {
-                return $response;
-            } else {
-                return $this->resultToArray($response, $options['x_delim_char'], $resultArray);
+    }
+
+    /**
+     * Parses the response and returns and array
+     *
+     * @param ResponseInterface $response
+     * @param $resultArray
+     *
+     * @return array
+     *
+     * @throws Exception
+     */
+    private function parseResponse(ResponseInterface $response, $resultArray): array
+    {
+        if ($response->getStatusCode() === 200) {
+            try {
+
+                return $this->resultToArray($response->getBody()->getContents(), ',', $resultArray);
+            } catch (Exception $exception) {
+
+                throw new Exception('An error occurred while attempting to parse the API result: ' . $exception->getMessage());
             }
-        } catch (Exception $exception) {
-            $this->assignLastError("An error occurred while attempting to parse the API result: " . $exception->getMessage());
-            return false;
+        } else {
+            throw new Exception('Invalid Status Code Returned');
         }
     }
 
     /**
      * Function takes result string from API and parses into PHP associative Array
      *
-     * If a return is specified to be returned as delimited, it will return the string. Otherwise, this function will be called to
+     * If a return is specified to be returned as delimited, it will return the string.
+     * Otherwise, this function will be called to
      * return the result as an associative array in the format specified by the API documentation.
      *
      * @param string $result The result string as returned by cURL
      * @param string $delim_char The character used to delimit the string in cURL
-     * @param array $keys An array containing the key names for the result variable as specified by the API docs
+     * @param array $keys An array containing the key names for the result variable
+     * as specified by the API docs
      *
      * @return array Associative array of key=>values pair described by the API docs as the return for the called method
      */
     private function resultToArray(string $result, string $delim_char, array $keys): array
     {
         $split = explode($delim_char, $result);
-        $resultArray = array();
+        $resultArray = [];
         foreach ($keys as $key => $keyName) {
             $resultArray[$keyName] = $split[$key];
         }
         return $resultArray;
-    }
-
-    /**
-     * @param string $method
-     * @param array $options
-     *
-     * @return array|bool|string
-     *
-     * @throws SoapFault
-     */
-    public function requestSOAP(string $method, array $options)
-    {
-        if (!isset($options['Client_ID'])) {
-            $options["Client_ID"] = $this->getClientID();
-        }
-        if (!isset($options['ApiPassword'])) {
-            $options['ApiPassword'] = $this->getApiPassword();
-        }
-        //Test whether they want the delimited return or not to start with
-        $returnDelim = ($options['x_delim_data'] === "TRUE");
-        //Now let's actually set delim to FALSE because calling by SOAP requires we get a response in XML
-        $options["x_delim_data"] = "";
-        $client = new SoapClient($this->getEndpoint() . "?wsdl", array("trace" => 1));
-        try {
-            $result = $client->__soapCall($method, array($options));
-            $resultArray = (array)$result;
-            $resultInnerArray = (array)reset($resultArray); //cheat to return the first element in the array without needing the key for it
-            if ($returnDelim) {
-                //We need to take it's arguments and turn them into a delimited string
-                return implode($options['x_delim_char'], array_values($resultInnerArray));
-            } else {
-                //Return it as an array
-                return $resultInnerArray;
-            }
-        } catch (Exception $exception) {
-            $this->assignLastError(sprintf('SOAP Request failed with error #%d: %s <br/> %s <br/> %s', $exception->getCode(), $exception->getMessage(), $client->__getLastRequest(), $client->__getLastResponse()));
-            return false;
-        }
     }
 }
