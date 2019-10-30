@@ -675,7 +675,7 @@ final class ECheck
      */
     public function createCustomer(Customer $customer, CustomerBankInfo $customerBankInfo)
     {
-        return $this->client->request('CreatCustomer',
+        return $this->client->request('CreateCustomer',
             array_merge(
                 $customer->toArray(),
                 $customerBankInfo->toArray()

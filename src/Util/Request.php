@@ -59,7 +59,7 @@ final class Request
      */
     private function getEndpoint($type): string
     {
-        return sprintf('https://%s/%s.asmx', ($this->live ? 'greenbyphone.com' : 'cpsandbox.com'), strtolower($type));
+        return sprintf('https://%s/%s.asmx/', ($this->live ? 'greenbyphone.com' : 'cpsandbox.com'), strtolower($type));
     }
 
     /**
@@ -99,7 +99,7 @@ final class Request
 
         try {
             $response = $client->request('POST', $method, [
-                'body' => array_merge($options, [
+                'form_params' => array_merge($options, [
                     'Client_ID' => $this->getClientId(),
                     'ApiPassword' => $this->getApiPassword(),
                     'x_delim_data' => 'true',
